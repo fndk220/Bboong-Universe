@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>급식 반찬 선별검사 </title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #container {
+            text-align: center;
+            position: relative;
+        }
+
+        #startTestButton,
+        #calculateButton,
+        #goBackButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        #startTestButton,
+        #calculateButton {
+            background-color: #4caf50;
+            color: #ffffff;
+        }
+
+        #goBackButton {
+            background-color: #008CBA;
+            color: #ffffff;
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+        }
+
+        #result img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>급식 반찬 선별검사</h1>
+
+        <div id="questions" style="display: none;">
+            <!-- 질문이 여기에 동적으로 표시될 것입니다. -->
+        </div>
+
+        <button id="startTestButton">선별 검사 시작</button>
+
+        <button id="calculateButton" style="display: none;">결과 계산</button>
+
+        <button id="goBackButton" style="display: none;">뒤로가기</button>
+
+        <div id="result">
+            <!-- 결과가 여기에 표시될 것입니다. -->
+        </div>
+    </div>
+
+    <script>
+        // 질문과 답변 정의
+        const questions = {
+            1: '어디서 맛있는 채소반찬 씹는 소리가 들립니다. 어떤소리인지 선택하세요.',
+            2: '채소 반찬을 썰었습니다. 어느정도 크기를 선호하시나요?',
+            3: '급식 반찬을 먹었습니다. 어떤 맛이 느껴졌나요?',
+        };
+
+        const answers = {
+            1: {
+                1: '사각사각',
+                2: '오독오독',
+                3: '질척질척',
+                4: '물컹물컹',
+                5: '질겅질겅',
+            },
+            2: {
+                1: '채썸',
+                2: '통',
+                3: '으깸',
+                4: '어슷',
+                5: '성큼',
+                6: '깍둑',
+            },
+            3: {
+                1: '상큼',
+                2: '감칠',
+                3: '달콤',
+                4: '매콤',
+                5: '담백',
+                6: '고소',
+            },
+        };
+
+        // 사용자 답변 저장
+        const userAnswers = {};
+
+        // 현재 질문 번호
+        let currentQuestion = 1;
+
+        // 이미지 URL 정의
+        const imageUrls = {
+            '오이김치': 'https://example.com/oikimchi.jpg',
+            '백김치': 'https://example.com/baekkimchi.jpg',
+            // 다른 결과에 대한 이미지도 추가 가능
+        };
+
+        // 질문 생성
+        const questionsDiv = document.getElementById('questions');
+        for (let questionNumber in questions) {
+            const questionText = questions[questionNumber];
+            const questionElement = document.createElement('div');
+            questionElement.innerHTML = `<p>${questionText}</p>`;
+
+            for (let answerNumber in answers[questionNumber]) {
+                const answerText = answers[questionNumber][answerNumber];
+                questionElement.innerHTML += `
+                    <input type="radio" name="question${questionNumber}" value="${answerNumber}" id="q${questionNumber}a${answerNumber}">
+                    <label for="q${questionNumber}a${answerNumber}">${answerText}</label>
+                `;
+            }
+
+            questionsDiv.appendChild(questionElement);
+        }
+
+        // 시작 버튼 클릭 시
+        document.getElementById('startTestButton').addEventListener('click', function () {
+            // 질문 보이기, 시작 버튼 숨기기, 결과 계산 버튼 보이기
+            questionsDiv.style.display = 'block';
+            document.getElementById('startTestButton').style.display = 'none';
+            document.getElementById('calculateButton').style.display = 'block';
+            document.getElementById('goBackButton').style.display = 'block';
+        });
+
+        // 결과 계산 버튼 클릭 시
+        document.getElementById('calculateButton').addEventListener('click', function () {
+            // 사용자 답변 수집
+            for (let questionNumber in questions) {
+                const selectedAnswer = document.querySelector(`input[name="question${questionNumber}"]:checked`);
+                if (selectedAnswer) {
+                    userAnswers[questionNumber] = selectedAnswer.value;
+                }
+            }
+
+            // 결과 계산
+            const personalityType = calculatePersonality(userAnswers);
+
+            // 결과 표시
+            const resultDiv = document.getElementById('result');
+            const imageUrl = imageUrls[personalityType];
+
+            // 이미지가 있는 경우에만 표시
+            const imageTag = imageUrl ? `<img src="${imageUrl}" alt="성격 유형 이미지">` : '';
+
+            resultDiv.innerHTML = `
+                <p>당신의 성격 유형은: ${personalityType}</p>
+                ${imageTag}
+            `;
+
+            // 결과 표시 후, 결과 계산 버튼 숨기기
+            document.getElementById('calculateButton').style.display = 'none';
+        });
+
+        // 뒤로가기 버튼 클릭 시
+        document.getElementById('goBackButton').addEventListener('click', function () {
+            // 질문 감추기, 시작 버튼 보이기, 결과 계산 버튼 숨기기
+            questionsDiv.style.display = 'none';
+            document.getElementById('startTestButton').style.display = 'block';
+            document.getElementById('calculateButton').style.display = 'none';
+            document.getElementById('goBackButton').style.display = 'none';
+
+            // 사용자 답변 초기화
+            for (let questionNumber in questions) {
+                const radioButtons = document.getElementsByName(`question${questionNumber}`);
+                for (let i = 0; i < radioButtons.length; i++) {
+                    radioButtons[i].checked = false;
+                }
+            }
+
+            // 결과 영역 초기화
+            document.getElementById('result').innerHTML = '';
+        });
+
+        // 결과 계산 함수
+        // 결과 계산 함수
+        function calculatePersonality(answers) {
+            // 결과를 조건에 따라 반환
+            if (answers[1] === '1' && answers[2] === '1' && answers[3] === '1') {
+                return '양배추샐러드';
+            } else if (answers[1] === '1' && answers[2] === '1' && answers[3] === '2') {
+                return '양배추샐러드';
+            } else if (answers[1] === '1' && answers[2] === '1' && answers[3] === '3') {
+                return '양배추샐러드';
+            } else if (answers[1] === '1' && answers[2] === '1' && answers[3] === '4') {
+                return '양배추샐러드,오이양파무침';
+            } else if (answers[1] === '1' && answers[2] === '1' && answers[3] === '5') {
+                return '양배추샐러드';
+            } else if (answers[1] === '1' && answers[2] === '1' && answers[3] === '6') {
+                return '양배추샐러드,콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '2' && answers[3] === '1') {
+                return '양배추샐러드,콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '2' && answers[3] === '2') {
+                return '연두부,새송이감자조림,콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '2' && answers[3] === '3') {
+                return '콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '2' && answers[3] === '4') {
+                return '배추김치,유채겉절이,콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '2' && answers[3] === '5') {
+                return '콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '2' && answers[3] === '6') {
+                return '콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '3' && answers[3] === '1') {
+                return '양배추샐러드,오이피클';
+            } else if (answers[1] === '1' && answers[2] === '3' && answers[3] === '2') {
+                return '양배추샐러드,오이양파무침,오이피클,배추김치,유채겉절이,콩나물무침,감자샐러드,버섯양배추볶음,양배추쌈,연두부,새송이감자조림';
+            } else if (answers[1] === '1' && answers[2] === '3' && answers[3] === '3') {
+                return '감자샐러드';
+            } else if (answers[1] === '1' && answers[2] === '3' && answers[3] === '4') {
+                return '오이양파무침,배추김치,유채겉절이';
+            } else if (answers[1] === '1' && answers[2] === '3' && answers[3] === '5') {
+                return '양배추샐러드,오이양파무침,오이피클,배추김치,유채겉절이,콩나물무침,감자샐러드,두부';
+            } else if (answers[1] === '1' && answers[2] === '3' && answers[3] === '6') {
+                return '콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '4' && answers[3] === '1') {
+                return '오이피클';
+            } else if (answers[1] === '1' && answers[2] === '4' && answers[3] === '2') {
+                return '오이피클';
+            } else if (answers[1] === '1' && answers[2] === '4' && answers[3] === '3') {
+                return '오이양파무침,오이피클';
+            } else if (answers[1] === '1' && answers[2] === '4' && answers[3] === '4') {
+                return '오이양파무침';
+            } else if (answers[1] === '1' && answers[2] === '4' && answers[3] === '5') {
+                return '오이양파무침,오이피클';
+            } else if (answers[1] === '1' && answers[2] === '4' && answers[3] === '6') {
+                return '오이양파무침,오이피클,콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '5' && answers[3] === '1') {
+                return '양배추샐러드,미역초무침,오이피클';
+            } else if (answers[1] === '1' && answers[2] === '5' && answers[3] === '2') {
+                return '유채겉절이';
+            } else if (answers[1] === '1' && answers[2] === '5' && answers[3] === '3') {
+                return '유채겉절이';
+            } else if (answers[1] === '1' && answers[2] === '5' && answers[3] === '4') {
+                return '유채겉절이';
+            } else if (answers[1] === '1' && answers[2] === '5' && answers[3] === '5') {
+                return '유채겉절이';
+            } else if (answers[1] === '1' && answers[2] === '5' && answers[3] === '6') {
+                return '유채겉절이,콩나물무침';
+            } else if (answers[1] === '1' && answers[2] === '6' && answers[3] === '1') {
+                return '양배추샐러드,오이피클';
+            } else if (answers[1] === '1' && answers[2] === '6' && answers[3] === '2') {
+                return '양배추쌈';
+            } else if (answers[1] === '1' && answers[2] === '6' && answers[3] === '3') {
+                return '양배추샐러드,오이양파무침,오이피클,배추김치,유채겉절이,콩나물무침,두부,양배추쌈,감자샐러드';
+            } else if (answers[1] === '1' && answers[2] === '6' && answers[3] === '4') {
+                return '배추김치,유채겉절이';
+            } else if (answers[1] === '1' && answers[2] === '6' && answers[3] === '5') {
+                return '두부';
+            } else if (answers[1] === '1' && answers[2] === '6' && answers[3] === '6') {
+                return '콩나물무침';
+            } else if (answers[1] === '2' && answers[2] === '1' && answers[3] === '1') {
+                return '양배추샐러드';
+            } else if (answers[1] === '2' && answers[2] === '1' && answers[3] === '2') {
+                return '버섯양배추볶음';
+            } else if (answers[1] === '2' && answers[2] === '1' && answers[3] === '3') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,양배추샐러드,감자샐러드';
+            } else if (answers[1] === '2' && answers[2] === '1' && answers[3] === '4') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,양배추샐러드,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '2' && answers[2] === '1' && answers[3] === '5') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,양배추샐러드,두부';
+            } else if (answers[1] === '2' && answers[2] === '1' && answers[3] === '6') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,양배추샐러드,미역줄기볶음,콩자반,콩나물무침';
+            } else if (answers[1] === '2' && answers[2] === '2' && answers[3] === '1') {
+                return '버섯양배추볶음,미역초무침';
+            } else if (answers[1] === '2' && answers[2] === '2' && answers[3] === '2') {
+                return '버섯양배추볶음';
+            } else if (answers[1] === '2' && answers[2] === '2' && answers[3] === '3') {
+                return '버섯양배추볶음';
+            } else if (answers[1] === '2' && answers[2] === '2' && answers[3] === '4') {
+                return '버섯양배추볶음';
+            } else if (answers[1] === '2' && answers[2] === '2' && answers[3] === '5') {
+                return '버섯양배추볶음';
+            } else if (answers[1] === '2' && answers[2] === '2' && answers[3] === '6') {
+                return '버섯양배추볶음,콩나물무침';
+            } else if (answers[1] === '2' && answers[2] === '3' && answers[3] === '1') {
+                return '미역초무침';
+            } else if (answers[1] === '2' && answers[2] === '3' && answers[3] === '2') {
+                return '버섯양배추볶음';
+            } else if (answers[1] === '2' && answers[2] === '3' && answers[3] === '3') {
+                return '감자샐러드';
+            } else if (answers[1] === '2' && answers[2] === '3' && answers[3] === '4') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,감자샐러드,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '2' && answers[2] === '3' && answers[3] === '5') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,감자샐러드,두부';
+            } else if (answers[1] === '2' && answers[2] === '3' && answers[3] === '6') {
+                return '미역줄기볶음';
+            } else if (answers[1] === '2' && answers[2] === '4' && answers[3] === '1') {
+                return '미역초무침,오이피클';
+            } else if (answers[1] === '2' && answers[2] === '4' && answers[3] === '2') {
+                return '버섯양배추볶음';
+            } else if (answers[1] === '2' && answers[2] === '4' && answers[3] === '3') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,오이양파무침,오이피클,양배추쌈';
+            } else if (answers[1] === '2' && answers[2] === '4' && answers[3] === '4') {
+                return '오이양파무침';
+            } else if (answers[1] === '2' && answers[2] === '4' && answers[3] === '5') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,오이양파무침,오이피클,두부';
+            } else if (answers[1] === '2' && answers[2] === '4' && answers[3] === '6') {
+                return '미역줄기볶음';
+            } else if (answers[1] === '2' && answers[2] === '5' && answers[3] === '1') {
+                return '미역초무침';
+            } else if (answers[1] === '2' && answers[2] === '5' && answers[3] === '2') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음';
+            } else if (answers[1] === '2' && answers[2] === '5' && answers[3] === '3') {
+                return '미역초무침,미역줄기볶음';
+            } else if (answers[1] === '2' && answers[2] === '5' && answers[3] === '4') {
+                return '미역초무침,미역줄기볶음';
+            } else if (answers[1] === '2' && answers[2] === '5' && answers[3] === '5') {
+                return '미역초무침,미역줄기볶음';
+            } else if (answers[1] === '2' && answers[2] === '5' && answers[3] === '6') {
+                return '미역줄기볶음';
+            } else if (answers[1] === '2' && answers[2] === '6' && answers[3] === '1') {
+                return '미역초무침';
+            } else if (answers[1] === '2' && answers[2] === '6' && answers[3] === '2') {
+                return '버섯양배추볶음,양배추쌈';
+            } else if (answers[1] === '2' && answers[2] === '6' && answers[3] === '3') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,두부,양배추쌈,감자샐러드';
+            } else if (answers[1] === '2' && answers[2] === '6' && answers[3] === '4') {
+                return '버섯양배추볶음,미역초무침,미역줄기볶음,두부,양배추쌈,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '2' && answers[2] === '6' && answers[3] === '5') {
+                return '두부';
+            } else if (answers[1] === '2' && answers[2] === '6' && answers[3] === '6') {
+                return '미역줄기볶음';
+            } else if (answers[1] === '3' && answers[2] === '1' && answers[3] === '1') {
+                return '양배추샐러드';
+            } else if (answers[1] === '3' && answers[2] === '1' && answers[3] === '2') {
+                return '감자샐러드,새송이감자조림,양배추샐러드,버섯양배추볶음,양배추쌈,연두부,새송이감자조림';
+            } else if (answers[1] === '3' && answers[2] === '1' && answers[3] === '3') {
+                return '감자샐러드,새송이감자조림,양배추샐러드,감자샐러드';
+            } else if (answers[1] === '3' && answers[2] === '1' && answers[3] === '4') {
+                return '감자샐러드,새송이감자조림,양배추샐러드,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '3' && answers[2] === '1' && answers[3] === '5') {
+                return '감자샐러드,새송이감자조림,양배추샐러드,두부';
+            } else if (answers[1] === '3' && answers[2] === '1' && answers[3] === '6') {
+                return '감재설러드,새송이감자조림,양배추샐러드,미역줄기볶음,콩자반,콩나물무침';
+            } else if (answers[1] === '3' && answers[2] === '2' && answers[3] === '1') {
+                return '감자샐러드,새송이감자조림,버섯양배추볶음,콩자반,연두부,새송이감자조림,콩나물무침,양배추샐러드,미역초무침,오이피클';
+            } else if (answers[1] === '3' && answers[2] === '2' && answers[3] === '2') {
+                return '새송이감자조림';
+            } else if (answers[1] === '3' && answers[2] === '2' && answers[3] === '3') {
+                return '감자샐러드,새송이감자조림';
+            } else if (answers[1] === '3' && answers[2] === '2' && answers[3] === '4') {
+                return '새송이감자조림';
+            } else if (answers[1] === '3' && answers[2] === '2' && answers[3] === '5') {
+                return '새송이감자조림';
+            } else if (answers[1] === '3' && answers[2] === '2' && answers[3] === '6') {
+                return '새송이감자조림';
+            } else if (answers[1] === '3' && answers[2] === '3' && answers[3] === '1') {
+                return '감자샐러드';
+            } else if (answers[1] === '3' && answers[2] === '3' && answers[3] === '2') {
+                return '감자샐러드,새송이감자조림';
+            } else if (answers[1] === '3' && answers[2] === '3' && answers[3] === '3') {
+                return '감자샐러드';
+            } else if (answers[1] === '3' && answers[2] === '3' && answers[3] === '4') {
+                return '감자샐러드';
+            } else if (answers[1] === '3' && answers[2] === '3' && answers[3] === '5') {
+                return '감자샐러드';
+            } else if (answers[1] === '3' && answers[2] === '3' && answers[3] === '6') {
+                return '감자샐러드';
+            } else if (answers[1] === '3' && answers[2] === '4' && answers[3] === '1') {
+                return '오이피클';
+            } else if (answers[1] === '3' && answers[2] === '4' && answers[3] === '2') {
+                return '김지샐러드,새송이감자조림,오이양파무침,오이피클,버섯양배추볶음,양배추쌈,연두부';
+            } else if (answers[1] === '3' && answers[2] === '4' && answers[3] === '3') {
+                return '감자샐러드';
+            } else if (answers[1] === '3' && answers[2] === '4' && answers[3] === '4') {
+                return '오이양파무침';
+            } else if (answers[1] === '3' && answers[2] === '4' && answers[3] === '5') {
+                return '감자샐러드,새송이감자조림,오이양파무침,오이피클,두부';
+            } else if (answers[1] === '3' && answers[2] === '4' && answers[3] === '6') {
+                return '감자샐러드,새송이감자조림,오이양파무침,오이피클,미역줄기볶음,콩자반,콩나물무침';
+            } else if (answers[1] === '3' && answers[2] === '5' && answers[3] === '1') {
+                return '감자샐러드,새송이감자조림,미역초무침,미역줄기볶음,유채겉절이,양배추샐러드,미역초무침,오이피클';
+            } else if (answers[1] === '3' && answers[2] === '5' && answers[3] === '2') {
+                return '감자샐러드,새송이감자조림,미역초무침,미역줄기볶음,유채겉절이,버섯양배추볶음,양배추쌈,연두부,새송이감자조림';
+            } else if (answers[1] === '3' && answers[2] === '5' && answers[3] === '3') {
+                return '감자샐러드';
+            } else if (answers[1] === '3' && answers[2] === '5' && answers[3] === '4') {
+                return '유채겉절이';
+            } else if (answers[1] === '3' && answers[2] === '5' && answers[3] === '5') {
+                return '감자샐러드,새송이감자조림,미역초무침,미역줄기볶음,유채겉절이,두부';
+            } else if (answers[1] === '3' && answers[2] === '5' && answers[3] === '6') {
+                return '미역줄기볶음';
+            } else if (answers[1] === '3' && answers[2] === '6' && answers[3] === '1') {
+                return '감자샐러드,새송이감자조림,두부,양배추쌈,양배추샐러드,미역초무침,오이피클';
+            } else if (answers[1] === '3' && answers[2] === '6' && answers[3] === '2') {
+                return '양배추쌈';
+            } else if (answers[1] === '3' && answers[2] === '6' && answers[3] === '3') {
+                return '감자샐러드';
+            } else if (answers[1] === '3' && answers[2] === '6' && answers[3] === '4') {
+                return '감자샐러드,새송이감자조림,두부,양배추쌈,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '3' && answers[2] === '6' && answers[3] === '5') {
+                return '두부';
+            } else if (answers[1] === '3' && answers[2] === '6' && answers[3] === '6') {
+                return '감자샐러드,새송이감자조림,두부,양배추쌈,미역줄기볶음,콩자반,콩나물무침';
+            } else if (answers[1] === '4' && answers[2] === '1' && answers[3] === '1') {
+                return '양배추샐러드';
+            } else if (answers[1] === '4' && answers[2] === '1' && answers[3] === '2') {
+                return '양배추쌈,연두부';
+            } else if (answers[1] === '4' && answers[2] === '1' && answers[3] === '3') {
+                return '두부,양배추쌈,연두부,양배추샐러드,감자샐러드';
+            } else if (answers[1] === '4' && answers[2] === '1' && answers[3] === '4') {
+                return '두부,양배추쌈,연두부,양배추샐러드,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '4' && answers[2] === '1' && answers[3] === '5') {
+                return '두부';
+            } else if (answers[1] === '4' && answers[2] === '1' && answers[3] === '6') {
+                return '두부,양배추쌈,연두부,양배추샐러드,미역줄기볶음,콩자반,콩나물무침';
+            } else if (answers[1] === '4' && answers[2] === '2' && answers[3] === '1') {
+                return '연두부';
+            } else if (answers[1] === '4' && answers[2] === '2' && answers[3] === '2') {
+                return '연두부';
+            } else if (answers[1] === '4' && answers[2] === '2' && answers[3] === '3') {
+                return '연두부';
+            } else if (answers[1] === '4' && answers[2] === '2' && answers[3] === '4') {
+                return '연두부';
+            } else if (answers[1] === '4' && answers[2] === '2' && answers[3] === '5') {
+                return '두부,연두부';
+            } else if (answers[1] === '4' && answers[2] === '2' && answers[3] === '6') {
+                return '연두부,콩나물무침';
+            } else if (answers[1] === '4' && answers[2] === '3' && answers[3] === '1') {
+                return '두부,양배추쌈,연두부,감자샐러드,양배추샐러드,미역초무침,오이피클';
+            } else if (answers[1] === '4' && answers[2] === '3' && answers[3] === '2') {
+                return '양배추쌈,연두부';
+            } else if (answers[1] === '4' && answers[2] === '3' && answers[3] === '3') {
+                return '감자샐러드';
+            } else if (answers[1] === '4' && answers[2] === '3' && answers[3] === '4') {
+                return '두부,양배추쌈,연두부,감자샐러드,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '4' && answers[2] === '3' && answers[3] === '5') {
+                return '두부,양배추쌈,연두부,감자샐러드,두부';
+            } else if (answers[1] === '4' && answers[2] === '3' && answers[3] === '6') {
+                return '두부,양배추쌈,연두부,감자샐러드,미역줄기볶음,콩자반,콩나물무침';
+            } else if (answers[1] === '4' && answers[2] === '4' && answers[3] === '1') {
+                return '오이피클';
+            } else if (answers[1] === '4' && answers[2] === '4' && answers[3] === '2') {
+                return '양배추쌈,연두부';
+            } else if (answers[1] === '4' && answers[2] === '4' && answers[3] === '3') {
+                return '두부,양배추쌈,연두부,오이양파무침,오이피클,감자샐러드';
+            } else if (answers[1] === '4' && answers[2] === '4' && answers[3] === '4') {
+                return '오이양파무침';
+            } else if (answers[1] === '4' && answers[2] === '4' && answers[3] === '5') {
+                return '두부';
+            } else if (answers[1] === '4' && answers[2] === '4' && answers[3] === '6') {
+                return '두부,양배추쌈,연두부,오이양파무침,오이피클,미역줄기볶음,콩자반,콩나물무침';
+            } else if (answers[1] === '4' && answers[2] === '5' && answers[3] === '1') {
+                return '두부,양배추쌈,연두부,미역초무침,미역줄기볶음,유채겉절이,양배추샐러드,미역초무침,오이피클';
+            } else if (answers[1] === '4' && answers[2] === '5' && answers[3] === '2') {
+                return '양배추쌈';
+            } else if (answers[1] === '4' && answers[2] === '5' && answers[3] === '3') {
+                return '두부,양배추쌈,연두부,미역초무침,미역줄기볶음,유채겉절이,감자샐러드';
+            } else if (answers[1] === '4' && answers[2] === '5' && answers[3] === '4') {
+                return '유채겉절이';
+            } else if (answers[1] === '4' && answers[2] === '5' && answers[3] === '5') {
+                return '두부';
+            } else if (answers[1] === '4' && answers[2] === '5' && answers[3] === '6') {
+                return '미역줄기볶음';
+            } else if (answers[1] === '4' && answers[2] === '6' && answers[3] === '1') {
+                return '두부,양배추쌈';
+            } else if (answers[1] === '4' && answers[2] === '6' && answers[3] === '2') {
+                return '두부,양배추쌈,연두부';
+            } else if (answers[1] === '4' && answers[2] === '6' && answers[3] === '3') {
+                return '두부,양배추쌈';
+            } else if (answers[1] === '4' && answers[2] === '6' && answers[3] === '4') {
+                return '두부,양배추쌈';
+            } else if (answers[1] === '4' && answers[2] === '6' && answers[3] === '5') {
+                return '두부';
+            } else if (answers[1] === '4' && answers[2] === '6' && answers[3] === '6') {
+                return '두부,양배추쌈';
+            } else if (answers[1] === '5' && answers[2] === '1' && answers[3] === '1') {
+                return '양배추샐러드';
+            } else if (answers[1] === '5' && answers[2] === '1' && answers[3] === '2') {
+                return '콩자반,양배추샐러드,버섯양배추볶음,양배추쌈,연두부,새송이감자조림';
+            } else if (answers[1] === '5' && answers[2] === '1' && answers[3] === '3') {
+                return '콩자반,양배추샐러드,감자샐러드';
+            } else if (answers[1] === '5' && answers[2] === '1' && answers[3] === '4') {
+                return '콩자반,양배추샐러드,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '5' && answers[2] === '1' && answers[3] === '5') {
+                return '콩자반,양배추샐러드,두부';
+            } else if (answers[1] === '5' && answers[2] === '1' && answers[3] === '6') {
+                return '콩자반,양배추샐러드,미역줄기볶음,콩나물무침';
+            } else if (answers[1] === '5' && answers[2] === '2' && answers[3] === '1') {
+                return '콩자반';
+            } else if (answers[1] === '5' && answers[2] === '2' && answers[3] === '2') {
+                return '콩자반,버섯양배추볶음,연두부,새송이감자조림';
+            } else if (answers[1] === '5' && answers[2] === '2' && answers[3] === '3') {
+                return '콩자반';
+            } else if (answers[1] === '5' && answers[2] === '2' && answers[3] === '4') {
+                return '콩자반';
+            } else if (answers[1] === '5' && answers[2] === '2' && answers[3] === '5') {
+                return '콩자반';
+            } else if (answers[1] === '5' && answers[2] === '2' && answers[3] === '6') {
+                return '콩자반';
+            } else if (answers[1] === '5' && answers[2] === '3' && answers[3] === '1') {
+                return '콩자반,감자샐러드,양배추샐러드,미역초무침,오이피클';
+            } else if (answers[1] === '5' && answers[2] === '3' && answers[3] === '2') {
+                return '콩자반,감자샐러드,버섯양배추볶음,양배추쌈,연두부,새송이감자조림';
+            } else if (answers[1] === '5' && answers[2] === '3' && answers[3] === '3') {
+                return '감자샐러드';
+            } else if (answers[1] === '5' && answers[2] === '3' && answers[3] === '4') {
+                return '콩자반,감자샐러드,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '5' && answers[2] === '3' && answers[3] === '5') {
+                return '콩자반,감자샐러드,두부';
+            } else if (answers[1] === '5' && answers[2] === '3' && answers[3] === '6') {
+                return '콩자반';
+            } else if (answers[1] === '5' && answers[2] === '4' && answers[3] === '1') {
+                return '오이피클';
+            } else if (answers[1] === '5' && answers[2] === '4' && answers[3] === '2') {
+                return '콩자반,오이양파무침,오이피클,버섯양배추볶음,양배추쌈,연두부,새송이감자조림';
+            } else if (answers[1] === '5' && answers[2] === '4' && answers[3] === '3') {
+                return '콩자반,오이양파무침,오이피클,감자샐러드';
+            } else if (answers[1] === '5' && answers[2] === '4' && answers[3] === '4') {
+                return '오이양파무침';
+            } else if (answers[1] === '5' && answers[2] === '4' && answers[3] === '5') {
+                return '콩자반,오이양파무침,오이피클,두부';
+            } else if (answers[1] === '5' && answers[2] === '4' && answers[3] === '6') {
+                return '콩자반,오이양파무침,오이피클,미역줄기볶음,콩나물무침';
+            } else if (answers[1] === '5' && answers[2] === '5' && answers[3] === '1') {
+                return '콩자반,미역초무침,미역줄기볶음,유채겉절이,양배추샐러드,미역초무침,오이피클';
+            } else if (answers[1] === '5' && answers[2] === '5' && answers[3] === '2') {
+                return '콩자반,미역초무침,미역줄기볶음,유채겉절이,버섯양배추볶음,양배추쌈,연두부,새송이감자조림';
+            } else if (answers[1] === '5' && answers[2] === '5' && answers[3] === '3') {
+                return '콩자반,미역초무침,미역줄기볶음,유채겉절이,감자샐러드';
+            } else if (answers[1] === '5' && answers[2] === '5' && answers[3] === '4') {
+                return '유채겉절이';
+            } else if (answers[1] === '5' && answers[2] === '5' && answers[3] === '5') {
+                return '콩자반,미역초무침,미역줄기볶음,유채겉절이,두부';
+            } else if (answers[1] === '5' && answers[2] === '5' && answers[3] === '6') {
+                return '콩자반,미역줄기볶음';
+            } else if (answers[1] === '5' && answers[2] === '6' && answers[3] === '1') {
+                return '콩자반,두부,양배추쌈,양배추샐러드,미역초무침,오이피클';
+            } else if (answers[1] === '5' && answers[2] === '6' && answers[3] === '2') {
+                return '양배추쌈';
+            } else if (answers[1] === '5' && answers[2] === '6' && answers[3] === '3') {
+                return '콩자반,두부,양배추쌈,감자샐러드';
+            } else if (answers[1] === '5' && answers[2] === '6' && answers[3] === '4') {
+                return '콩자반,두부,양배추쌈,오이양파무침,배추김치,도토리묵,유채겉절이';
+            } else if (answers[1] === '5' && answers[2] === '6' && answers[3] === '5') {
+                return '두부';
+            } else if (answers[1] === '5' && answers[2] === '6' && answers[3] === '6') {
+                return '콩자반,두부,양배추쌈,미역줄기볶음,콩자반,콩나물무침';
+
+
+
+            
+    
+
+
+
+    
+                
+                
+            } else {
+                // 다른 조건에 따른 결과값 처리
+                // 여기에 다른 조건을 추가하실 수 있습니다.
+                return '3문항을 모두 체크해 주세요';
+            }
+        }
+    </script>
+</body>
+</html>
